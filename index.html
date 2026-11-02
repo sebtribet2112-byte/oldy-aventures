@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Les aventures d’Oldy et Sébastien</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--card:#fffdf6;--ink:#1f3a26;--soft:#4d6b55;--main:#2f7d3e;--main-ink:#fff;--line:#b9d3b0;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--card:#1d3024;--ink:#eaf5e4;--soft:#a8c4ae;--main:#6fc27f;--main-ink:#0f2216;--line:#35523c;color-scheme:dark}}
+:root[data-theme="dark"]{--card:#1d3024;--ink:#eaf5e4;--soft:#a8c4ae;--main:#6fc27f;--main-ink:#0f2216;--line:#35523c;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;height:100%;background:#142b1d;color:var(--ink);font-family:"Fredoka",system-ui,sans-serif;font-size:16px;line-height:1.35;overflow:hidden}
+#wrap{position:relative;width:100%;height:calc(100vh - 8px);height:calc(100dvh - 8px);max-width:900px;margin:0 auto;overflow:hidden;background:#9bd0e5}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+.hud{position:absolute;top:8px;left:8px;background:rgba(16,41,29,.85);border:2px solid #c99a27;color:#f4d331;border-radius:12px;padding:6px 12px;font-weight:600;pointer-events:none}
+#mus{position:absolute;top:52px;left:8px;width:44px;height:44px;border-radius:14px;border:2px solid #c99a27;background:rgba(16,41,29,.85);color:#fff;font-size:20px;cursor:pointer;padding:0}
+#hint{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(150px + env(safe-area-inset-bottom,0px));background:rgba(16,41,29,.85);border:1px solid #c99a27;color:#fff;border-radius:12px;padding:8px 12px;font-size:14px;text-align:center;max-width:90%;pointer-events:none}
+#controls{position:absolute;left:0;right:0;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;justify-content:space-between;align-items:flex-end;padding:0 14px;pointer-events:none}
+.pad{display:grid;grid-template-columns:repeat(3,58px);grid-template-rows:repeat(2,58px);gap:5px;pointer-events:auto}
+.ctrl{border:2px solid #f4d331;background:rgba(21,61,43,.85);color:#fff;border-radius:16px;font-size:23px;font-weight:700;touch-action:none;cursor:pointer;padding:0}
+.ctrl:active{background:#d4a91c;color:#17251a}
+#bf{grid-column:2;grid-row:1}#bl{grid-column:1;grid-row:2}#bb{grid-column:2;grid-row:2}#br{grid-column:3;grid-row:2}
+#act{pointer-events:auto;width:86px;height:86px;border-radius:50%;font-size:15px;background:rgba(138,90,22,.92)}
+#dlg,#start{position:absolute;left:8px;right:8px;background:var(--card);color:var(--ink);border:3px solid var(--line);border-radius:18px;padding:14px;display:none;max-height:78%;overflow:auto}
+#dlg{bottom:calc(8px + env(safe-area-inset-bottom,0px))}
+#start{top:50%;transform:translateY(-50%);display:block}
+#dlg button,#start button{font:inherit;width:100%;text-align:left;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:14px;padding:11px 13px;margin:0 0 8px;min-height:48px;cursor:pointer}
+#dlg button:focus-visible,#start button:focus-visible{outline:3px solid var(--main);outline-offset:2px}
+button.go{background:var(--main)!important;color:var(--main-ink)!important;border-color:var(--main)!important;text-align:center!important;font-weight:600}
+h1{font-size:22px;line-height:1.15;margin:0 0 8px}
+p{margin:0 0 9px}.fact{color:var(--soft);font-size:14px}
+</style>
+</head>
+<body>
+<div id="wrap">
+<div class="hud" id="hud">💎 0 / 14</div>
+<button id="mus" aria-label="Musique">🔊</button>
+<div id="hint">Avance avec les flèches. Approche-toi d’un villageois ❗ puis appuie sur ACTION.</div>
+<div id="controls"><div class="pad"><button class="ctrl" id="bf" aria-label="Avancer">▲</button><button class="ctrl" id="bl" aria-label="Gauche">◀</button><button class="ctrl" id="bb" aria-label="Reculer">▼</button><button class="ctrl" id="br" aria-label="Droite">▶</button></div><button class="ctrl" id="act">ACTION</button></div>
+<div id="dlg"></div>
+<div id="start"><h1>Les aventures d’Oldy et Sébastien</h1><p>Promène-toi dans le village avec Oldy et va parler aux 14 villageois ❗ : chacun vit avec un handicap invisible. Trouve la bonne attitude pour gagner un diamant 💎. <b>Rendons visible l’invisible !</b></p><button class="go" id="play">Jouer</button></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+var V=[
+{n:"Marie",x:8,z:8,c:0xc0392b,q:"Marie sort d’une voiture garée sur la place handicapé. Elle marche sans aide. Que fais-tu ?",a:[["Lui dire qu’elle n’a pas le droit.",0,"Tu ne vois pas tout : douleurs et fatigue ne se voient pas."],["Ne pas juger. Elle a peut-être une carte.",1,"Bravo ! Un handicap peut ne pas se voir."],["La filmer pour la dénoncer.",0,"Humilier quelqu’un sur son apparence fait du mal."]],f:"Plus d’un handicap sur trois ne se voit pas."},
+{n:"Paul",x:31,z:9,c:0x2980b9,q:"Paul écrit : « Désolé, je suis trop fatigué pour venir. » Ce n’est pas la première fois. Tu réponds quoi ?",a:[["« Tu es paresseux, tu exagères. »",0,"La fatigue neurologique est incontrôlable, ce n’est pas de la paresse."],["« Pas de souci, on se voit quand tu peux. »",1,"Super ! Tu gardes le lien sans pression."],["Ne plus jamais l’inviter.",0,"Il se sentira mis de côté. Invite-le, sans obligation."]],f:"Une nuit de sommeil ne soulage pas la fatigue neurologique."},
+{n:"Henri",x:9,z:31,c:0x8e44ad,q:"Henri, qui a des troubles de la mémoire après un AVC, te demande pour la troisième fois l’heure du marché.",a:[["Soupirer : « Je te l’ai déjà dit ! »",0,"Il en souffre. Ton agacement le rend honteux."],["Répondre calmement et lui écrire l’heure.",1,"Excellent ! Un petit mot l’aide beaucoup."],["Ne pas lui répondre.",0,"Il se sentirait ignoré. Une aide écrite est bien mieux."]],f:"La personne a souvent conscience de ses oublis."},
+{n:"Karim",x:31,z:31,c:0x16a085,q:"Karim tombe et tremble : c’est une crise d’épilepsie. Que fais-tu en premier ?",a:[["Lui mettre une cuillère dans la bouche.",0,"Jamais ! On ne met rien dans la bouche."],["Le tenir fort pour arrêter les secousses.",0,"On ne retient pas la personne, on la protège des chocs."],["Écarter les objets, protéger sa tête, chronométrer, rester là.",1,"Parfait ! Plus de 5 minutes : on appelle le 15."]],f:"Après la crise, mets la personne sur le côté et reste avec elle."},
+{n:"Léa",x:20,z:6,c:0xd35400,q:"Le fils de Léa se bouche les oreilles et crie dans un magasin bruyant. Léa est dépassée. Que fais-tu ?",a:[["Dire : « Quel enfant mal élevé ! »",0,"Le bruit peut être très douloureux pour un enfant autiste."],["Sourire à Léa sans juger.",1,"Très bien ! Un regard bienveillant aide énormément."],["Regarder fixement l’enfant.",0,"Être regardé augmente son stress. Laisse-lui de l’espace."]],f:"Ce n’est pas de la mauvaise éducation : son cerveau ressent tout plus fort."},
+{n:"Jo",x:5,z:20,c:0x7f8c8d,q:"Jo avance lentement en se tenant aux murs, comme s’il avait trop bu. Il ne sent pas l’alcool. Que fais-tu ?",a:[["Penser qu’il est ivre et l’éviter.",0,"Les troubles de l’équilibre ressemblent à l’ivresse."],["« Je peux vous aider ? » puis attendre sa réponse.",1,"Bravo ! Proposer sans imposer."],["Le prendre par le bras sans rien dire.",0,"Demande avant : il peut tomber."]],f:"Beaucoup luttent chaque jour contre vertiges et troubles de la marche, sans que ça se voie."},
+{n:"Anne",x:14,z:13,c:0xe84393,q:"Anne a soudain le pire mal de tête de sa vie. Elle vomit et a la nuque raide. Que fais-tu ?",a:[["Lui donner un cachet et la laisser dormir.",0,"Ce n’est pas une migraine ordinaire : cela peut être une rupture d’anévrisme, une urgence vitale."],["Appeler le 15 tout de suite.",1,"Bravo ! Chaque minute compte : on appelle les secours et on ne la laisse pas seule."],["Attendre demain pour voir si ça passe.",0,"Attendre peut être fatal. Ce mal de tête brutal se traite en urgence."]],f:"Un mal de tête soudain et violent, jamais ressenti avant, est une urgence : appelle le 15."},
+{n:"Roger",x:26,z:14,c:0x2c3e50,q:"Roger a un stimulateur cardiaque. À l’entrée du magasin, le portique sonne. Que fais-tu ?",a:[["Rire : « Tu es un robot ! »",0,"Se moquer le blesse. Son stimulateur lui permet de vivre, ce n’est pas drôle."],["Le laisser prévenir le personnel et garder ton téléphone loin de sa poitrine.",1,"Parfait ! On respecte ses précautions, sans en faire un spectacle."],["Lui demander de repasser plusieurs fois pour tester.",0,"Il doit éviter de rester près des portiques. Ne lui impose pas de tests."]],f:"Téléphone et aimants se gardent à plus de 15 cm d’un stimulateur cardiaque."},
+{n:"Sophie",x:14,z:26,c:0x27ae60,q:"Sophie s’endort en réunion. Elle a une apnée du sommeil sévère. Que fais-tu ?",a:[["Te moquer : « Tu dors tout le temps ! »",0,"Elle ne choisit pas. Sa nuit n’est pas réparatrice, même longue."],["Lui proposer une courte pause au calme.",1,"Bravo ! Un peu de repos l’aide à tenir la journée."],["Dire au chef qu’elle est fainéante.",0,"C’est faux et injuste. Sa fatigue est médicale."]],f:"L’apnée du sommeil provoque des micro-réveils : une nuit entière ne repose pas."},
+{n:"Marc",x:26,z:27,c:0xf39c12,q:"Marc a des troubles de la marche et de l’équilibre. Le restaurant est à l’étage, sans ascenseur. Que fais-tu ?",a:[["Lui dire : « Fais un effort ! »",0,"L’effort ne règle pas un trouble de l’équilibre, et il risque de tomber."],["Choisir un endroit accessible, avec une chaise à portée.",1,"Super ! Penser l’accessibilité à l’avance, c’est être inclusif."],["Le porter dans l’escalier sans demander.",0,"Demande toujours avant : c’est dangereux et ça peut le gêner."]],f:"Marcher sur un sol plat, c’est déjà un effort constant pour certaines personnes."},
+{n:"Nadia",x:12,z:3,c:0x9b59b6,q:"Nadia n’a plus le droit de conduire à cause de son épilepsie. La fête est à 30 km, sans transport. Que fais-tu ?",a:[["Lui dire : « Prends ta voiture, personne ne verra. »",0,"Conduire est interdit tant que les crises ne sont pas contrôlées : c’est trop dangereux."],["Lui proposer de venir la chercher ou de covoiturer.",1,"Bravo ! Un trajet partagé change tout pour elle."],["Ne plus l’inviter, c’est trop loin.",0,"Elle se sentirait exclue. Cherche plutôt une solution ensemble."]],f:"Ne plus pouvoir conduire, c’est perdre une part de son autonomie."},
+{n:"Luc",x:3,z:12,c:0x1abc9c,q:"Luc a eu un AVC il y a des années. Il sourit. Tu lui dis quoi ?",a:[["« Tu as l’air en forme, tu ne peux pas être fatigué. »",0,"Les séquelles (fatigue, mémoire, concentration) ne se voient pas sur le visage."],["« Comment tu te sens vraiment aujourd’hui ? »",1,"Parfait ! Tu lui donnes la place de répondre honnêtement."],["« Allez, secoue-toi un peu ! »",0,"La fatigue neurologique ne se règle pas avec de la volonté."]],f:"Après un AVC, fatigue, mémoire et concentration restent souvent touchées, sans que ça se voie."},
+{n:"Inès",x:30,z:20,c:0xe67e22,q:"Depuis son AVC, Inès cherche ses mots et s’arrête au milieu d’une phrase. Que fais-tu ?",a:[["Finir ses phrases à sa place sans rien demander.",0,"Tu la presses sans le vouloir. Laisse-lui le temps de trouver."],["Lui laisser le temps et proposer de l’aide si elle le veut.",1,"Bravo ! La patience est la meilleure aide."],["Dire « Bon, laisse tomber » et partir.",0,"Elle se sentirait rejetée. Reste avec elle."]],f:"Chercher ses mots est épuisant, mais la personne comprend bien ce qu’on lui dit."},
+{n:"Sam",x:20,z:36,c:0x3498db,q:"Sam a la reconnaissance de travailleur handicapé (RQTH) et demande un aménagement de poste. Que fais-tu ?",a:[["Dire que c’est un privilège.",0,"Un aménagement compense une difficulté, ce n’est pas un cadeau."],["L’écouter et chercher ensemble ce qui l’aide.",1,"Super ! Il connaît ses besoins : écoute-le."],["Lui demander de prouver son handicap devant tout le monde.",0,"Son état de santé est confidentiel. Ne l’expose jamais."]],f:"La RQTH ouvre des aménagements, et le handicap reste confidentiel."}
+];
+var T=THREE,$=function(i){return document.getElementById(i)},wrap=$("wrap"),S=1.6,open=0,helped=0,t=0,last=0,k={};
+V.forEach(function(v){v.wx=(v.x-20)*S;v.wz=(v.z-20)*S});
+var R=new T.WebGLRenderer({antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,1.5));wrap.insertBefore(R.domElement,wrap.firstChild);
+var scene=new T.Scene();scene.background=new T.Color(0x9bd0e5);scene.fog=new T.Fog(0x9bd0e5,30,90);
+var cam=new T.PerspectiveCamera(62,1,.1,150);
+var amb=new T.AmbientLight(0xffffff,.7),sun=new T.DirectionalLight(0xfff1cf,.8),SD=new T.Color(0x9bd0e5),SN=new T.Color(0x0b1030),sq=[];
+sun.position.set(-15,28,12);scene.add(amb);scene.add(sun);
+for(var i=0;i<300;i++){var th=Math.random()*6.283,ph=Math.random()*1.4+.1;sq.push(Math.cos(th)*Math.cos(ph)*80,Math.sin(ph)*80,Math.sin(th)*Math.cos(ph)*80)}
+var sgm=new T.BufferGeometry();sgm.setAttribute("position",new T.Float32BufferAttribute(sq,3));
+var stars=new T.Points(sgm,new T.PointsMaterial({color:0xffffff,size:2,sizeAttenuation:false,fog:false,transparent:true,opacity:0}));scene.add(stars);
+function size(){R.setSize(wrap.clientWidth,wrap.clientHeight);cam.aspect=wrap.clientWidth/wrap.clientHeight;cam.updateProjectionMatrix()}
+addEventListener("resize",size);size();
+function M(g,c,x,y,z,p){var m=new T.Mesh(g,new T.MeshLambertMaterial({color:c}));m.position.set(x,y,z);(p||scene).add(m);return m}
+var gr=M(new T.PlaneGeometry(200,200),0x4d8b3b,0,0,0);gr.rotation.x=-Math.PI/2;
+var p1=M(new T.PlaneGeometry(6,90),0xb89a65,0,.02,0);p1.rotation.x=-Math.PI/2;var p2=M(new T.PlaneGeometry(90,6),0xb89a65,0,.03,0);p2.rotation.x=-Math.PI/2;
+var HS=[];
+V.forEach(function(v){var hx=v.wx+5,hz=v.wz,g=new T.Group();g.position.set(hx,0,hz);scene.add(g);HS.push([hx,hz]);
+ M(new T.BoxGeometry(4,2.6,4),0xd9b77a,0,1.3,0,g);var r=M(new T.ConeGeometry(3.6,1.9,4),0xb5502a,0,3.5,0,g);r.rotation.y=Math.PI/4;M(new T.BoxGeometry(.9,1.7,.1),0x5a3a1c,0,.85,2.02,g);M(new T.BoxGeometry(.8,.8,.1),0x9bd0e5,1.2,1.5,2.02,g)});
+for(var i=0;i<90;i++){var x=(Math.random()-.5)*72,z=(Math.random()-.5)*72;
+ if(Math.abs(x)<5&&Math.abs(z)<5||Math.abs(x)<3.5||Math.abs(z)<3.5)continue;
+ if(V.some(function(v){return Math.hypot(x-v.wx,z-v.wz)<5})||HS.some(function(h){return Math.hypot(x-h[0],z-h[1])<5}))continue;
+ var s=.7+Math.random()*.8,g=new T.Group();g.position.set(x,0,z);g.scale.setScalar(s);scene.add(g);M(new T.CylinderGeometry(.22,.32,2.2,7),0x704321,0,1.1,0,g);
+ for(var j=0;j<3;j++)M(new T.ConeGeometry(1.35-j*.18,2.6,7),j%2?0x368446:0x236b37,0,2.4+j*.85,0,g)}
+var hero=new T.Group();scene.add(hero);hero.position.set(0,0,6);
+M(new T.CylinderGeometry(.14,.14,.6,8),0x352218,-.18,.3,0,hero);M(new T.CylinderGeometry(.14,.14,.6,8),0x352218,.18,.3,0,hero);
+var hb=M(new T.CylinderGeometry(.38,.42,1,10),0x2458a6,0,1.1,0,hero);M(new T.SphereGeometry(.3,14,10),0xd7a47b,0,1.8,0,hero);M(new T.SphereGeometry(.31,12,8,0,6.283,0,1.5),0x352218,0,1.88,0,hero);
+var dog=new T.Group();scene.add(dog);
+M(new T.SphereGeometry(.38,14,10),0x9b5c2c,0,.45,0,dog).scale.set(.85,.8,1.35);M(new T.SphereGeometry(.25,12,10),0x9b5c2c,0,.65,.42,dog);M(new T.SphereGeometry(.12,10,8),0xf1dfb9,0,.58,.62,dog);
+M(new T.SphereGeometry(.12,8,8),0x352218,-.2,.7,.38,dog).scale.set(.6,1.5,.7);M(new T.SphereGeometry(.12,8,8),0x352218,.2,.7,.38,dog).scale.set(.6,1.5,.7);
+M(new T.CylinderGeometry(.07,.07,.35,6),0x9b5c2c,-.2,.17,.2,dog);M(new T.CylinderGeometry(.07,.07,.35,6),0x9b5c2c,.2,.17,.2,dog);M(new T.CylinderGeometry(.07,.07,.35,6),0x9b5c2c,-.2,.17,-.2,dog);M(new T.CylinderGeometry(.07,.07,.35,6),0x9b5c2c,.2,.17,-.2,dog);
+dog.position.set(1.4,0,7);
+V.forEach(function(v){var g=new T.Group();g.position.set(v.wx,0,v.wz);scene.add(g);v.g=g;
+ M(new T.CylinderGeometry(.14,.14,.5,8),0x34495e,-.17,.25,0,g);M(new T.CylinderGeometry(.14,.14,.5,8),0x34495e,.17,.25,0,g);M(new T.CylinderGeometry(.35,.4,1,10),v.c,0,.95,0,g);
+ v.head=M(new T.SphereGeometry(.3,14,10),0xe8b98a,0,1.65,0,g);v.gem=M(new T.OctahedronGeometry(.22),0x22e07a,0,2.5,0,g);v.gem.material.emissive=new T.Color(0x0a6030)});
+function near(){for(var i=0;i<V.length;i++)if(!V[i].done&&Math.hypot(V[i].wx-hero.position.x,V[i].wz-hero.position.z)<4.4)return i;return -1}
+var KM={arrowup:"F",w:"F",z:"F",arrowdown:"B",s:"B",arrowleft:"L",a:"L",q:"L",arrowright:"R",d:"R"};
+addEventListener("keydown",function(e){var m=KM[e.key.toLowerCase()];if(m)k[m]=1;if(e.key==" "||e.key=="Enter"){e.preventDefault();act()}});
+addEventListener("keyup",function(e){var m=KM[e.key.toLowerCase()];if(m)k[m]=0});
+[["bf","F"],["bb","B"],["bl","L"],["br","R"]].forEach(function(a){var b=$(a[0]);b.addEventListener("pointerdown",function(e){e.preventDefault();k[a[1]]=1;$("hint").style.display="none";b.setPointerCapture(e.pointerId)});["pointerup","pointercancel","lostpointercapture"].forEach(function(ev){b.addEventListener(ev,function(){k[a[1]]=0})})});
+$("act").addEventListener("pointerdown",function(e){e.preventDefault();act()});
+function act(){if(open||$("start").style.display!="none")return;var n=near();if(n>=0)talk(n);else{var h=$("hint");h.style.display="block";h.textContent="Approche-toi d’un villageois ❗ pour lui parler.";setTimeout(function(){h.style.display="none"},2200)}}
+var dlg=$("dlg");dlg.addEventListener("pointerdown",function(e){e.stopPropagation()});
+function talk(i){var v=V[i];open=1;k={};dlg.style.display="block";
+ dlg.innerHTML='<p><b>'+v.n+'</b></p><p>'+v.q+'</p>'+v.a.map(function(a,j){return'<button data-k="'+j+'">'+a[0]+'</button>'}).join('')+'<button id="cl">Plus tard</button>';
+ dlg.querySelectorAll("button[data-k]").forEach(function(b){b.onclick=function(){ans(i,+b.dataset.k)}});$("cl").onclick=close}
+function close(){open=0;dlg.style.display="none"}
+function ans(i,j){var v=V[i],a=v.a[j];
+ if(a[1]){v.done=1;helped++;v.g.remove(v.gem);v.head.material.color.setHex(0xffd27a);$("hud").textContent="💎 "+helped+" / "+V.length;
+  dlg.innerHTML='<p><b>Bravo ! 💎 +1</b></p><p>'+a[2]+'</p><p class="fact">Le savais-tu ? '+v.f+'</p>'+(helped==V.length?'<p><b>🎉 Tous les villageois sont aidés ! Fête au village avec Oldy !</b></p><p class="fact">Devant un handicap invisible : ne juge pas, demande, sois patient. Rendons visible l’invisible !</p>':'')+'<button class="go" id="cl">Continuer</button>';$("cl").onclick=close}
+ else{dlg.innerHTML='<p><b>Oups…</b> '+a[2]+'</p><button class="go" id="re">Réessayer</button>';$("re").onclick=function(){talk(i)}}}
+var AC=null,musOn=1,mi=0,SC=[0,2,4,7,9,12,9,7,4,2,0,4,7,4];
+function note(){if(!AC||!musOn)return;var o=AC.createOscillator(),g=AC.createGain(),n=AC.currentTime;o.type="sine";o.frequency.value=261.6*Math.pow(2,SC[mi++%SC.length]/12);g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(.05,n+.06);g.gain.exponentialRampToValueAtTime(.001,n+1.2);o.connect(g);g.connect(AC.destination);o.start();o.stop(n+1.3)}
+$("play").onclick=function(){$("start").style.display="none";try{AC=new(window.AudioContext||window.webkitAudioContext)();setInterval(note,700)}catch(e){}};
+$("mus").onclick=function(){musOn=1-musOn;$("mus").textContent=musOn?"🔊":"🔇"};
+function frame(now){var dt=Math.min(.05,(now-last)/1000);last=now;t+=dt;
+ var dn=(Math.sin(t*.05+1.2)+1)/2;scene.background.lerpColors(SN,SD,dn);scene.fog.color.copy(scene.background);amb.intensity=.3+.4*dn;sun.intensity=.2+.6*dn;stars.material.opacity=Math.max(0,.9-dn*2.2);stars.position.copy(cam.position);
+ var mv=0;
+ if(!open&&$("start").style.display=="none"){var dx=(k.R?1:0)-(k.L?1:0),dz=(k.B?1:0)-(k.F?1:0);
+  if(dx||dz){mv=1;var l=Math.hypot(dx,dz),p=hero.position;p.x+=dx/l*8*dt;p.z+=dz/l*8*dt;hero.rotation.y=Math.atan2(dx,dz);
+   p.x=Math.max(-36,Math.min(36,p.x));p.z=Math.max(-36,Math.min(36,p.z));
+   HS.forEach(function(h){var ex=p.x-h[0],ez=p.z-h[1];if(Math.abs(ex)<2.5&&Math.abs(ez)<2.5){if(Math.abs(ex)>Math.abs(ez))p.x=h[0]+Math.sign(ex)*2.5;else p.z=h[1]+Math.sign(ez)*2.5}})}}
+ hero.position.y=mv?Math.abs(Math.sin(t*12))*.08:0;
+ var fx=hero.position.x,fz=hero.position.z+8.5;cam.position.x+=(fx-cam.position.x)*.09;cam.position.y+=(5.3-cam.position.y)*.09;cam.position.z+=(fz-cam.position.z)*.09;cam.lookAt(hero.position.x,1,hero.position.z-3);
+ var gx=hero.position.x+1.4-dog.position.x,gz=hero.position.z+1.2-dog.position.z;dog.position.x+=gx*.06;dog.position.z+=gz*.06;if(Math.hypot(gx,gz)>.3)dog.rotation.y=Math.atan2(gx,gz);dog.position.y=Math.hypot(gx,gz)>.3?Math.abs(Math.sin(t*12))*.07:0;
+ V.forEach(function(v){v.g.rotation.y=Math.atan2(hero.position.x-v.wx,hero.position.z-v.wz);if(v.done)v.g.position.y=Math.abs(Math.sin(t*5))*.35;else{v.gem.rotation.y=t*2;v.gem.position.y=2.5+Math.sin(t*3)*.12}});
+ R.render(scene,cam);requestAnimationFrame(frame)}
+cam.position.set(0,5.3,14.5);requestAnimationFrame(frame);
+</script>
+</body>
+</html>
